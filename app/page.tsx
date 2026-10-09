@@ -41,10 +41,14 @@ const dimensions = [
   { name: "声音体验", words: ["声音", "噪音", "吵"] },
   { name: "价格价值", words: ["价格", "贵", "性价比"] },
   { name: "操作体验", words: ["操作", "双击", "简单", "学习成本"] },
+  { name: "密封防漏", words: ["密封", "防漏", "漏水", "不漏"] },
+  { name: "饮用体验", words: ["吸管", "杯口", "双饮", "直饮", "圆润"] },
+  { name: "容量空间", words: ["容量", "大容量", "装得多", "容纳"] },
+  { name: "保温保冷", words: ["保温", "保冷", "冰水", "温度"] },
 ];
 
 const positiveWords = ["方便", "不错", "很好", "简单", "干净", "安心", "喜欢", "好看", "很细", "高", "快"];
-const negativeWords = ["一般", "贵", "大", "吵", "藏", "需要", "偏小", "漏", "麻烦", "不足", "问题"];
+const negativeWords = ["一般", "贵", "声音大", "体积大", "太大", "吵", "藏", "需要", "偏小", "漏", "麻烦", "不足", "问题"];
 const sceneMap = [
   { name: "办公室轻食", words: ["办公室", "工位", "上班"] },
   { name: "健身营养补给", words: ["健身", "蛋白", "运动"] },
@@ -129,11 +133,38 @@ function analyzeReviews(reviews: string[], product: string, platform: string, to
   };
 }
 
+function parseCsvRow(line: string) {
+  const fields: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === '"') {
+      if (quoted && line[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (character === "," && !quoted) {
+      fields.push(field);
+      field = "";
+    } else {
+      field += character;
+    }
+  }
+
+  fields.push(field);
+  return fields;
+}
+
 function parseFileText(text: string) {
   return text
+    .replace(/^\uFEFF/, "")
     .split(/\r?\n/)
     .slice(0, 501)
-    .map((line) => line.replace(/^\s*["']|["']\s*$/g, "").split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).pop() || "")
+    .map((line) => parseCsvRow(line).at(-1)?.trim() || "")
     .filter((line, index) => index > 0 || !/评论|内容|review|comment/i.test(line));
 }
 
